@@ -4,6 +4,10 @@ From RFQ to paid invoice in one grid. Built for the PayPal AI Hackathon 2026.
 
 A small manufacturing shop pastes (or uploads) a customer's request for quote. **Gemini** extracts the parts as structured data, a **deterministic pricing engine** prices every line (the AI never sets a price), and the quote appears in an editable **AG Grid** table. One approval click creates and sends two **PayPal** invoices, a 30% deposit and the balance. PayPal webhooks flip the job status when each invoice is paid.
 
+# User Notes / Instructions
+Click ``` CHECK PAYMENT STATUS ``` to refresh the status on quotes.
+
+
 ## Run locally
 Needs Node 20+.
 ```bash
