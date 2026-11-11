@@ -1,36 +1,109 @@
 # Quoid
 
-From RFQ to paid invoice in one grid. Built for the PayPal AI Hackathon 2026.
+**From RFQ to paid invoice in one grid.**
 
-A small manufacturing shop pastes (or uploads) a customer's request for quote. **Gemini** extracts the parts as structured data, a **deterministic pricing engine** prices every line (the AI never sets a price), and the quote appears in an editable **AG Grid** table. One approval click creates and sends two **PayPal** invoices, a 30% deposit and the balance. PayPal webhooks flip the job status when each invoice is paid.
+Quoid is an AI agent for small manufacturing shops. A customer sends a request for quote (RFQ) as text, a PDF or a photo. Quoid reads it, prices every line, shows the quote in an editable grid, builds a quotation document, and sends the customer PayPal invoices for a deposit and the final payment. Built for the PayPal AI Hackathon 2026.
 
-## Run locally
-Needs Node 20+.
+**See the payment flow in action, with screenshots:** [docs/payment-flow.md](docs/payment-flow.md)
+
+## What it does
+
+1. **Reads the RFQ.** Gemini turns the customer's message (text, PDF or photo) into structured parts: item, material, process, quantity, size and tolerance. Anything unclear is flagged instead of guessed.
+2. **Prices every line.** A deterministic pricing engine (material, machine time, setup, margin) sets every price. The AI never invents a number, so each price is explainable.
+3. **Shows an editable quote** in an AG Grid table. Change a quantity, material, process or margin and everything reprices.
+4. **Builds a quotation document** in a side panel. It is drawn in the browser from the quote data, so editing the company details, customer details, validity, tax, deposit % or terms updates it instantly with no AI call. It can be printed or saved as a PDF.
+5. **Sends PayPal invoices** with one click: a deposit invoice and a balance invoice, created and sent through the PayPal Invoicing API (sandbox).
+6. **Tracks payment.** The quote status moves from Ready to send, to Awaiting deposit, Part paid or Deposit paid, to Paid in full. Online, PayPal's webhook updates it (see [the payment walkthrough](docs/payment-flow.md)). If the status has not changed after you pay, click `CHECK PAYMENT STATUS`.
+
+Light and dark themes are included.
+
+## How it works
+
+```
+RFQ text / PDF / photo
+        |
+   Gemini API  ->  structured JSON (parts, materials, sizes, confidence)
+        |
+ pricing engine (server.js, deterministic)  ->  line prices, tax, deposit, balance
+        |
+ AG Grid quote  +  live quotation preview (browser only)
+        |
+ PayPal Invoicing API  ->  deposit invoice + balance invoice
+        |
+ PayPal webhook (INVOICING.INVOICE.PAID) / Check payment status  ->  quote status
+```
+
+**Stack:** Node.js, Express, plain HTML/CSS/JS, AG Grid Community, Google Gemini API, PayPal Invoicing API v2 (sandbox) and webhooks, PostgreSQL (optional), Render for hosting.
+
+## Run it locally
+
+You need Node.js 20 or newer.
+
 ```bash
 npm install
-cp .env.example .env     # fill in the keys below
-npm run dev              # http://localhost:3000
+cp .env.example .env      # on Windows: copy .env.example .env
+# edit .env and fill in the keys below
+npm run dev
 ```
-Without `DATABASE_URL`, quotes are kept in memory. On localhost PayPal cannot reach the webhook, so use the **Check payment status** button after paying a sandbox invoice.
 
-## Keys
-| Variable | Where to get it |
+Open http://localhost:3000.
+
+### Environment variables
+
+| Variable | What it is |
 |---|---|
-| `GEMINI_API_KEY` | Google AI Studio (free tier). Set `LLM_MODEL` to a current Flash model if the default alias changes. |
-| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | developer.paypal.com, Apps & Credentials, Sandbox, create an app under your sandbox business account |
-| `PAYPAL_WEBHOOK_ID` | Same app, add a webhook to `https://<your-host>/api/paypal/webhook` with the `INVOICING.INVOICE.PAID` event, copy its ID |
-| `DATABASE_URL` | Optional Postgres URL (Neon or Render) |
+| `GEMINI_API_KEY` | Key from Google AI Studio |
+| `LLM_MODEL` | One or more Gemini model names separated by commas. They are tried in order. Example: `gemini-3.5-flash,gemini-3.1-flash-lite,gemini-3.5-flash-lite` |
+| `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET` | From a PayPal developer **sandbox** app |
+| `PAYPAL_ENV` | `sandbox` |
+| `PAYPAL_WEBHOOK_ID` | ID of the webhook you add in PayPal after deploying (see below). Leave empty locally. |
+| `DATABASE_URL` | Optional PostgreSQL connection string. Without it, quotes are saved to `data/jobs.json`. |
 
-## Try it (judges)
-1. Click **Use sample request**, then **Generate quote**. Edit a quantity, material or margin and watch the prices update.
-2. Enter a **sandbox personal** account's email as the customer, then **Approve and send PayPal invoices**.
-3. Open an invoice link, pay it with the sandbox buyer login, and the status changes to *Deposit paid* (or press **Check payment status**).
+Write each value with no quotes and no spaces around the `=`.
+
+## Try it (for judges)
+
+> After paying an invoice, click `CHECK PAYMENT STATUS` to update the quote.
+
+You need a PayPal **sandbox** buyer account. The login for the test buyer is in the testing instructions of the Devpost submission.
+
+1. Click **Try a sample**, then the send arrow. You should get 3 parts and a total of about $954.68 (with the default 30% deposit: $286.40 deposit and $668.28 balance).
+2. Edit a quantity, a material or the margin in the grid. The totals update.
+3. Click **Open preview**. In **Quotation details**, type a company name, set tax and deposit %, and watch the document change.
+4. Put the sandbox buyer's email in **Bill to**, then click **Approve and send invoices**. Two invoice links appear under the quote.
+5. Open the **Deposit** link, log in with the sandbox buyer, and pay.
+6. Return to Quoid. The status updates by itself when PayPal's webhook arrives. If it still says "Awaiting deposit", click `CHECK PAYMENT STATUS`.
+7. Pay the **Balance** invoice and check again. The quote becomes **Paid in full**.
+
+Everything uses PayPal's sandbox, so no real money is involved.
+
+See the payment steps with screenshots in [docs/payment-flow.md](docs/payment-flow.md).
 
 ## Deploy on Render
-Push this repo to GitHub, create a Blueprint from `render.yaml`, fill the environment variables, and register the webhook URL in PayPal.
 
-## Design notes
-- Gemini only extracts facts. Prices come from `priceLine()` in `server.js`, so every number is auditable and each row explains itself.
-- Light mode uses blue and green, dark mode uses red and grey.
+1. Push this repository to GitHub.
+2. Create a free PostgreSQL database (for example at [neon.tech](https://neon.tech)) and copy its connection string.
+3. On [Render](https://render.com), create a **Blueprint** from this repo (it reads `render.yaml`), or create a Web Service with build command `npm install` and start command `node server.js`.
+4. Add the environment variables from the table above, including `DATABASE_URL`.
+5. In the PayPal developer dashboard, open your sandbox app, add a webhook at `https://<your-app>.onrender.com/api/paypal/webhook`, subscribe to **Invoice paid** (`INVOICING.INVOICE.PAID`), and copy its Webhook ID into `PAYPAL_WEBHOOK_ID` on Render.
 
-License: MIT
+Render's free web services go to sleep when idle, so the first visit after a quiet period can take about a minute to load.
+
+## Project layout
+
+```
+server.js            API, pricing engine, Gemini and PayPal calls
+public/index.html    the whole interface (grid, chat, preview panel, logo)
+render.yaml          Render blueprint
+.env.example         the settings you need
+```
+
+## Notes and limits
+
+- PayPal is used in sandbox mode only.
+- The material and machine rates in `server.js` are example values for a demo shop. A real shop would replace them with its own.
+- The Gemini free tier has rate limits. Results are cached, and if one model is busy Quoid tries the next one in `LLM_MODEL`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
