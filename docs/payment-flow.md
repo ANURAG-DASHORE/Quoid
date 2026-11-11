@@ -1,5 +1,7 @@
 # Payment flow in action
 
+![invoice activity in the PayPal sandbox](activity.png)
+
 This page shows the payment part of Quoid working end to end in the PayPal sandbox. The screenshots come from real test runs. All money is fake sandbox money.
 
 **The quote used in steps 1 to 5:** Q-MWB91VM2, a 3-part quote for Nova Robotics.
