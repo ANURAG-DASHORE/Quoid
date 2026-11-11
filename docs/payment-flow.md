@@ -1,6 +1,6 @@
 # Payment flow in action
 
-![invoice activity in the PayPal sandbox](activity.png)
+![invoice activity in PayPal sandbox](screenshots/activity.png)
 
 This page shows the payment part of Quoid working end to end in the PayPal sandbox. The screenshots come from real test runs. All money is fake sandbox money.
 
