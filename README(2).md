@@ -1,12 +1,17 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="public/logo-dark.svg">
-    <source media="(prefers-color-scheme: light)" srcset="public/logo-green.svg">
-    <img src="public/logo-green.svg" alt="Quoid logo" width="140">
-  </picture>
-</p>
-
 # Quoid
+
+<table align="center" style="border: none; border-collapse: collapse;">
+  <tr>
+    <td align="center" style="border: none; border-right: 2px solid #333333; padding-right: 20px;">
+      <img src="public/logo-green.svg" alt="Quoid logo light mode" width="85%">
+    </td>
+    <td align="center" style="border: none; padding-left: 20px;">
+      <img src="public/logo-dark.svg" alt="Quoid logo dark mode" width="85%">
+    </td>
+  </tr>
+</table>
+
+---
 
 **From RFQ to paid invoice in one grid.**
 
