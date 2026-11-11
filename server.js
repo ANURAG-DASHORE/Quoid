@@ -10,6 +10,11 @@ const wrap = f => (q, r) => f(q, r).catch(e => { console.error(e); r.status(500)
 
 /* ---------- storage: Postgres if DATABASE_URL is set, otherwise memory ---------- */
 let pool = null; const mem = new Map();
+// Without a database, quotes are saved to data/jobs.json so they survive a restart
+const fs = require('fs'), path = require('path');
+const FILE = path.join(__dirname, 'data', 'jobs.json');
+try { for (const j of JSON.parse(fs.readFileSync(FILE, 'utf8'))) mem.set(j.id, j); } catch (e) { /* first run: no file yet */ }
+const persist = () => { try { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify([...mem.values()])); } catch (e) { console.error('Could not save quotes:', e.message); } };
 if (E.DATABASE_URL) {
   const { Pool } = require('pg');
   pool = new Pool({ connectionString: E.DATABASE_URL, ssl: /render\.com|neon\.tech/.test(E.DATABASE_URL) ? { rejectUnauthorized: false } : false });
@@ -18,7 +23,7 @@ if (E.DATABASE_URL) {
 const store = {
   async list() { return pool ? (await pool.query('select data from jobs order by created desc limit 30')).rows.map(r => r.data) : [...mem.values()].reverse(); },
   async get(id) { return pool ? (await pool.query('select data from jobs where id=$1', [id])).rows[0]?.data : mem.get(id); },
-  async save(j) { if (pool) await pool.query('insert into jobs(id,data) values($1,$2) on conflict(id) do update set data=$2', [j.id, j]); else mem.set(j.id, j); return j; },
+  async save(j) { if (pool) await pool.query('insert into jobs(id,data) values($1,$2) on conflict(id) do update set data=$2', [j.id, j]); else { mem.set(j.id, j); persist(); } return j; },
   async byInvoice(id) { return (await this.list()).find(j => j.invoices?.some(i => i.id === id)); }
 };
 
@@ -50,7 +55,7 @@ function priceJob(j) {
   return j;
 }
 const settle = j => { const all = j.invoices.length && j.invoices.every(i => i.paid), dep = j.invoices.find(i => i.kind === 'deposit')?.paid;
-  if (j.invoices.length) j.status = all ? 'paid' : dep ? 'deposit_paid' : 'invoiced'; return j; };
+  if (j.invoices.length) j.status = all ? 'paid' : dep ? 'deposit_paid' : j.invoices.some(i => i.paid) ? 'part_paid' : 'invoiced'; return j; };
 
 /* ---------- Gemini: extracts facts from the RFQ (text, PDF or photo) as schema-bound JSON ---------- */
 const S = (type) => ({ type }), en = (...v) => ({ type: 'STRING', format: 'enum', enum: v });
@@ -169,8 +174,11 @@ app.post('/api/jobs/:id/sync', wrap(async (q, r) => {
   if (!j) return r.status(404).json({ error: 'Quote not found' });
   const tok = await ppToken();
   for (const i of j.invoices) if (!i.paid) {
-    const d = await (await fetch(PP + '/v2/invoicing/invoices/' + i.id, { headers: { Authorization: 'Bearer ' + tok } })).json();
-    if (['PAID', 'MARKED_AS_PAID'].includes(d.status)) i.paid = true;
+    const r2 = await fetch(PP + '/v2/invoicing/invoices/' + i.id, { headers: { Authorization: 'Bearer ' + tok } });
+    const d = await r2.json();
+    i.pp = d.status || ('HTTP ' + r2.status);
+    console.log('PayPal invoice', i.id, 'status:', d.status, 'due:', d.due_amount?.value);
+    if (['PAID', 'MARKED_AS_PAID'].includes(d.status) || (d.due_amount && parseFloat(d.due_amount.value) === 0 && !['CANCELLED', 'DRAFT'].includes(d.status))) i.paid = true;
   }
   r.json(await store.save(settle(j)));
 }));
