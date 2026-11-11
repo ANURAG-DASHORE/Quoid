@@ -1,6 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="public/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="public/logo-green.svg">
     <img src="public/logo-green.svg" alt="Quoid logo" width="140">
   </picture>
 </p>
