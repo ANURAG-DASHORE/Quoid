@@ -1,10 +1,31 @@
 # Quoid
 
+<table align="center" style="border: none; border-collapse: collapse;">
+  <tr>
+    <td align="center" style="border: none; border-right: 2px solid #333333; padding-right: 20px;">
+      <img src="public/logo-green.svg" alt="Quoid logo light mode" width="85%">
+    </td>
+    <td align="center" style="border: none; padding-left: 20px;">
+      <img src="public/logo-dark.svg" alt="Quoid logo dark mode" width="85%">
+    </td>
+  </tr>
+</table>
+
+---
+
 **From RFQ to paid invoice in one grid.**
 
 Quoid is an AI agent for small manufacturing shops. A customer sends a request for quote (RFQ) as text, a PDF or a photo. Quoid reads it, prices every line, shows the quote in an editable grid, builds a quotation document, and sends the customer PayPal invoices for a deposit and the final payment. Built for the PayPal AI Hackathon 2026.
 
 **See the payment flow in action, with screenshots:** [docs/payment-flow.md](docs/payment-flow.md)
+
+| Link | URL |
+|---|---|
+| Live demo | https://YOUR-APP-NAME.onrender.com |
+| Devpost submission | https://devpost.com/software/YOUR-PROJECT-NAME |
+| Demo video (YouTube) | https://youtu.be/YOUR-VIDEO-ID |
+
+<!-- Replace the three placeholder URLs above before you submit. -->
 
 ## What it does
 
