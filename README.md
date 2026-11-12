@@ -21,8 +21,8 @@ Quoid is an AI agent for small manufacturing shops. A customer sends a request f
 
 | Link | URL |
 |---|---|
-| Live demo | https://YOUR-APP-NAME.onrender.com |
-| Devpost submission | https://devpost.com/software/YOUR-PROJECT-NAME |
+| Live demo | [https://quoid.onrender.com](https://quoid.onrender.com) |
+| Devpost submission | [https://devpost.com/software/qoid](https://devpost.com/software/qoid) |
 | Demo video (YouTube) | https://youtu.be/YOUR-VIDEO-ID |
 
 <!-- Replace the three placeholder URLs above before you submit. -->
